@@ -2,7 +2,8 @@ import os
 from flask import Flask, request, jsonify
 from rq import Queue
 from worker import conn
-from utils import count_words_at_url
+
+from src.index import start, clean
 
 app = Flask(__name__)
 q = Queue(connection=conn)
@@ -16,8 +17,10 @@ def get_status(job):
     status.update(job.meta)
     return status
 
-@app.route("/")
-def handle_job():
+@app.route("/start")
+def handle_fetch_job():
+    days = request.args.get('days')
+    hours = request.args.get('hours')
     query_id = request.args.get('job')
     if query_id:
         found_job = q.fetch_job(query_id)
@@ -26,7 +29,23 @@ def handle_job():
         else:
             output = { 'id': None, 'error_message': 'No job exists with the id number ' + query_id }
     else:
-        new_job = q.enqueue(count_words_at_url, 'http://heroku.com')
+        new_job = q.enqueue(start,  args=(days, hours), job_timeout=1000)
+        output = get_status(new_job)
+    return jsonify(output)
+
+@app.route("/clean")
+def handle_clean_job():
+    days = request.args.get('days')
+    hours = request.args.get('hours')
+    query_id = request.args.get('job')
+    if query_id:
+        found_job = q.fetch_job(query_id)
+        if found_job:
+            output = get_status(found_job)
+        else:
+            output = { 'id': None, 'error_message': 'No job exists with the id number ' + query_id }
+    else:
+        new_job = q.enqueue(clean, days, hours)
         output = get_status(new_job)
     return jsonify(output)
 

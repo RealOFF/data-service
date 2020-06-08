@@ -1,3 +1,11 @@
-Flask==0.12
+flask
 rq
 requests
+pymodm
+telethon
+pymorphy2
+natasha
+yargy
+gunicorn
+python-dotenv
+dnspython
